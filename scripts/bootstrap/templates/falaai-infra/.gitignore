@@ -1,0 +1,5 @@
+.pulumi/
+Pulumi.*.yaml.bak
+*.tfstate
+.env
+.DS_Store
