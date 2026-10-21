@@ -4,11 +4,12 @@ Recria do zero a estrutura do projeto: repositórios no GitHub, labels, rigs do 
 
 ## Pré-requisitos
 
-1. Organização no GitHub criada manualmente em https://github.com/organizations/plan (plano Free). O nome `falaai` pertence a outro usuário; o padrão é `falaai-br`.
+1. Organização no GitHub criada manualmente em <https://github.com/organizations/plan> (plano Free). O nome `falaai` pertence a outro usuário; o padrão é `falaai-br`.
 2. `gh` autenticado com escopo `repo` e acesso de owner na organização.
 3. Chave SSH cadastrada no GitHub (os rigs usam `git@github.com:...`).
 4. Gas Town (`gt`) e beads (`bd`) instalados, com workspace em `~/gt`.
-5. Este diretório já é um repositório git com o commit inicial do blueprint.
+5. Ferramentas do pipeline: Go, Rust (`brew install rustup`), Flutter, Docker, Node.js, shellcheck. As demais são instaladas por `make tools` em cada repositório.
+6. Este diretório já é um repositório git com o commit inicial do blueprint.
 
 ## Uso
 
@@ -17,7 +18,7 @@ ORG=falaai-br scripts/bootstrap/bootstrap.sh            # todas as etapas
 ORG=falaai-br scripts/bootstrap/bootstrap.sh seed sync  # só algumas
 ```
 
-Etapas, nesta ordem: `repos`, `labels`, `rigs`, `github`, `seed`, `sync`, `convoy`.
+Etapas, nesta ordem: `repos`, `labels`, `rigs`, `settings`, `github`, `seed`, `sync`, `convoy`.
 
 ## O que é criado
 
@@ -30,8 +31,10 @@ Etapas, nesta ordem: `repos`, `labels`, `rigs`, `github`, `seed`, `sync`, `convo
 | `falaai-server` | `falaai_server` | `fls` | privado |
 | `falaai-infra` | `falaai_infra` | `fli` | privado |
 
+- Cada repositório nasce com `Makefile`, `.githooks/`, `mk/hooks.mk`, `.gitleaks.toml` e `.editorconfig`. O script roda `make check` em cada esqueleto antes do primeiro push.
+- Cada rig recebe gates de merge (`make check` antes do merge, `make build` depois do squash) e revisão por agente.
 - Rig `falaai`: 5 epics (Fases 0 a 4, encadeados) e 3 tarefas jurídicas.
-- Demais rigs: as tarefas da Fase 0, com dependências internas.
+- Demais rigs: uma bead raiz "Pipeline de qualidade verde" e as tarefas da Fase 0, que dependem dela.
 - Convoy "FalaAí Fase 0" rastreando o epic e todas as tarefas da Fase 0.
 
 ## Depois do bootstrap

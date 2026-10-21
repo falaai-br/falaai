@@ -1,0 +1,15 @@
+profile: coverage.out
+threshold:
+  file: 0
+  package: 85
+  total: 80
+override:
+  - path: ^.*/internal/[^/]+/domain
+    threshold: 85
+exclude:
+  paths:
+    - ^gen/
+    - ^cmd/
+    - _mock\.go$
+    - /handlers/
+    - /adapters/

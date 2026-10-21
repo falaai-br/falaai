@@ -45,6 +45,7 @@ Um aplicativo de mensagens e chamadas **brasileiro**, para o público brasileiro
 - [04 — Cliente (app + núcleo)](04-cliente.md)
 - [05 — Roadmap](05-roadmap.md)
 - [06 — Custos](06-custos.md)
+- [07 — Qualidade e pipeline](07-qualidade-e-pipeline.md)
 - [Jurídico: LGPD e Marco Civil](../legal/lgpd-e-marco-civil.md)
 - [Jurídico: retenção e resposta a ordens](../legal/retencao-e-resposta-a-ordens.md)
 - [Jurídico: licenciamento AGPL](../legal/licenciamento-agpl.md)

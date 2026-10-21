@@ -31,4 +31,4 @@
 ## Exclusão
 
 - Exclusão de conta pelo app: apagamento em até 24h, exceto registros de acesso (obrigação legal, 6 meses) e `phone_hmac` como tombstone anti-abuso por 30 dias.
-- Purgas automáticas rodam diariamente e são **testadas em CI**.
+- Purgas automáticas rodam diariamente e são **testadas no `make check`** (pipeline local, ver [qualidade](../blueprint/07-qualidade-e-pipeline.md)).

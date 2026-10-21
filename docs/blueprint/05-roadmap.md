@@ -4,7 +4,7 @@ Time de referência: 2 backend (Go), 2 mobile (Flutter), 1 Rust/cripto, 1 design
 
 | Fase | Escopo | Critério de saída | Esforço |
 |---|---|---|---|
-| **0 — Spike do protocolo** | libsignal compilando para iOS e Android via flutter_rust_bridge; sessão 1:1 entre dois aparelhos físicos; SQLCipher aberto pelo NSE do iOS; envelope em protobuf; servidor mínimo (`accounts` + `keys` + relay); CI gera xcframework e `.so` | Demo: mensagem cifrada entre iPhone e Android, decifrada pelo NSE com app fechado | 4–6 semanas |
+| **0 — Spike do protocolo** | libsignal compilando para iOS e Android via flutter_rust_bridge; sessão 1:1 entre dois aparelhos físicos; SQLCipher aberto pelo NSE do iOS; envelope em protobuf; servidor mínimo (`accounts` + `keys` + relay); `make build-mobile` gera xcframework e `.so`; pipeline de qualidade verde nos hooks | Demo: mensagem cifrada entre iPhone e Android, decifrada pelo NSE com app fechado | 4–6 semanas |
 | **1 — Texto 1:1** | Registro com SMS e PIN, username, prekeys, Triple Ratchet, sealed sender, outbox, recibos, digitação, push, safety numbers, efêmeras, `delivery` completo | 1.000 mensagens em 3 perfis de rede ruim sem perda nem duplicação; revisão interna do núcleo | 10–12 semanas |
 | **2 — Grupos + mídia** | Sender Keys, estado de grupo cifrado, convites por link, anexos com upload resumível, thumbnails, backup cifrado. **Contratar auditoria externa** | Grupo de 50 pessoas com entradas e saídas e rotação de chave correta; fotos enviadas em 3G | 10–12 semanas |
 | **3 — Chamadas** | 1:1 com WebRTC + CallKit/ConnectionService + coturn; grupo via LiveKit com frame encryption | Taxa de conexão acima de 95% em teste nacional; chamada recebida com tela bloqueada nas duas plataformas | 12–16 semanas |

@@ -1,0 +1,13 @@
+config:
+  default: true
+  MD013: false          # tamanho de linha: prosa e tabelas longas
+  MD024:
+    siblings_only: true
+  MD033: false          # HTML inline
+  MD041: false          # primeira linha não precisa ser H1 (templates)
+  MD060: false          # estilo de tabela
+ignores:
+  - "graft/**"
+  - "node_modules/**"
+  - "scripts/bootstrap/licenses/**"
+  - "LICENSE"

@@ -2,7 +2,7 @@
 
 ## Camadas
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │ falaai-app (Flutter / Dart)                  │
 │  UI · Async Redux · go_router · flutter_webrtc│
@@ -54,24 +54,30 @@ Build: `opt-level = "z"`, LTO, `panic = "abort"`. Targets: `aarch64-linux-androi
 ## Fluxos críticos
 
 ### Registro
+
 Número → SMS → nome. O núcleo gera identity key, registration id, 100 one-time prekeys, signed prekey e Kyber prekeys, e envia o bundle. PIN de registro oferecido logo depois (adiável, com lembrete).
 
 ### Envio e recebimento
+
 Envio: outbox → existe sessão? Se não, busca bundle e faz PQXDH → cifra → sealed sender → WebSocket → ACK do servidor marca "enviado" → recibo de entrega chega como mensagem de protocolo. Recebimento: envelope → decifra → persiste → emite evento → ACK. Tratar explicitamente `UntrustedIdentity` e mensagens duplicadas.
 
 ### Grupos
+
 Distribuição pairwise da sender key, mensagem cifrada uma vez, rotação em toda mudança de membros. Estado do grupo cifrado com a group master key.
 
 ### Mídia
+
 Cifra em streaming para arquivo temporário, upload resumível, thumbnail cifrada separada. Download sob demanda em dados móveis (configurável), automático no Wi-Fi.
 
 ### Push
+
 O push só acorda o app, nunca carrega conteúdo.
 
 - **iOS:** APNs com `mutable-content: 1` → **Notification Service Extension** linka `falaai-core`, abre o SQLCipher via **App Group**, busca o envelope e decifra para mostrar remetente e prévia. Limites do NSE: ~24 MB de memória e ~30s. Cuidados: WAL + busy timeout, Keychain compartilhado por access group, **nunca dois processos avançando o mesmo ratchet** (lock de arquivo + sinalização ao app). Fallback: "Nova mensagem".
 - **Android:** FCM *data message* de alta prioridade → serviço chama o núcleo → notificação local. Documentar Doze e fabricantes que matam processos (Xiaomi, Samsung em modos agressivos) e guiar o usuário a liberar o app.
 
 ### Chamadas
+
 `flutter_webrtc` 1.6.x. Sinalização dentro de mensagens E2EE. iOS: **PushKit + CallKit** (a chamada precisa ser reportada ao CallKit imediatamente ao receber o VoIP push). Android: `ConnectionService` + full-screen intent. Grupo via SDK LiveKit com `FrameCryptor`.
 
 ## Segurança no aparelho

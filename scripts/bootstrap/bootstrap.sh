@@ -3,7 +3,7 @@
 # espelhadas em GitHub Issues e convoy da Fase 0. Idempotente: pode rodar de novo.
 #
 # Uso:  ORG=falaai-br scripts/bootstrap/bootstrap.sh [etapa...]
-# Etapas: repos labels rigs github seed sync convoy   (padrão: todas, nessa ordem)
+# Etapas: repos labels rigs settings github seed sync convoy   (padrão: todas, nessa ordem)
 set -euo pipefail
 
 ORG="${ORG:-falaai-br}"
@@ -12,6 +12,8 @@ DOCS_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 TPL="$DOCS_DIR/scripts/bootstrap/templates"
 LIC="$DOCS_DIR/scripts/bootstrap/licenses"
 WORK="${TMPDIR:-/tmp}/falaai-bootstrap"
+PATH="$(go env GOPATH 2>/dev/null)/bin:$HOME/.cargo/bin:$(brew --prefix rustup 2>/dev/null)/bin:$PATH"
+export PATH
 
 # repo | rig | prefixo beads | visibilidade | licença | descrição
 REPOS=(
@@ -63,6 +65,10 @@ step_repos() {
         rm -rf "$src"; mkdir -p "$src"
         cp -R "$TPL/$name/." "$src/"
         cp "$TPL/_common/SECURITY.md" "$src/SECURITY.md"
+        cp -R "$TPL/_common/.githooks" "$TPL/_common/mk" "$src/"
+        cp "$TPL/_common/.gitleaks.toml" "$TPL/_common/.editorconfig" "$src/"
+        chmod +x "$src/.githooks/"*
+        if [[ "$name" == "falaai-core" ]]; then (cd "$src" && cargo generate-lockfile -q); fi
         [[ "$lic" != "none" ]] && cp "$LIC/$lic.txt" "$src/LICENSE"
         grep -rl '__ORG__' "$src" | xargs -I{} sed -i '' "s/__ORG__/$ORG/g" {} 2>/dev/null || true
         git -C "$src" init -q -b main
@@ -70,6 +76,8 @@ step_repos() {
         git -C "$src" commit -q -m "chore: estrutura inicial do repositório
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+        info "$name: rodando make check no esqueleto"
+        (cd "$src" && make -s check >/dev/null) || die "$name: make check falhou no esqueleto; rode 'make check' em $src"
       fi
     fi
     git -C "$src" remote get-url origin >/dev/null 2>&1 || git -C "$src" remote add origin "git@github.com:$ORG/$name.git"
@@ -110,6 +118,28 @@ step_rigs() {
       (cd "$GT_HOME" && gt rig add "$rig" "git@github.com:$ORG/$name.git" --prefix "$prefix" "${extra[@]}")
       info "$rig: registrada (prefixo $prefix)"
     fi
+  done
+}
+
+step_settings() {
+  log "Gates de qualidade das rigs (merge_queue)"
+  local gates='{"check":{"cmd":"make check","timeout":"40m"},"build-merged":{"cmd":"make build","timeout":"20m","phase":"post-squash"}}'
+  for r in "${REPOS[@]}"; do
+    local rig; rig=$(field "$r" 2)
+    (
+      cd "$GT_HOME"
+      gt rig settings set "$rig" merge_queue.enabled true
+      gt rig settings set "$rig" merge_queue.run_tests true
+      gt rig settings set "$rig" merge_queue.setup_command "make tools"
+      gt rig settings set "$rig" merge_queue.lint_command "make lint"
+      gt rig settings set "$rig" merge_queue.test_command "make check"
+      gt rig settings set "$rig" merge_queue.build_command "make build"
+      gt rig settings set "$rig" merge_queue.gates "$gates"
+      gt rig settings set "$rig" merge_queue.judgment_enabled true
+      gt rig settings set "$rig" merge_queue.merge_strategy pr
+      gt rig settings set "$rig" merge_queue.require_review false
+    ) >/dev/null
+    info "$rig: gates check + build-merged, revisão por agente"
   done
 }
 
@@ -162,6 +192,20 @@ Critério de saída: zero achados críticos abertos; crash-free > 99,5%.")
   mk falaai task "juridico,docs" 2 "Publicar 'O que o FalaAí pode e não pode entregar'" "Documento público com fundamento técnico, antes do beta. Base: $BP/legal/retencao-e-resposta-a-ordens.md" >/dev/null
   dep falaai "$E4" "$J1"
 
+  # ---- pipeline de qualidade: raiz de cada rig de código
+  local QP QC QS QA QI
+  local QD="make tools ativa os hooks; make check verde (lint, testes unitários, integração, segurança, build) sem pular nada. Garantir que um commit com mensagem fora do padrão é recusado e que o pre-push bloqueia falha. Ver $BP/blueprint/07-qualidade-e-pipeline.md"
+  QP=$(mk falaai_proto task "fase-0,infra" 0 "Pipeline de qualidade verde: make tools, make check e hooks" "$QD
+Específico: buf lint/breaking/generate com código Go versionado em gen/go.")
+  QC=$(mk falaai_core task "fase-0,infra,cripto" 0 "Pipeline de qualidade verde: make tools, make check e hooks" "$QD
+Específico: cargo deny aceitando AGPL-3.0 e só as fontes git da Signal; clippy -D warnings; teste de integração real em tests/.")
+  QS=$(mk falaai_server task "fase-0,infra,backend" 0 "Pipeline de qualidade verde: make tools, make check e hooks" "$QD
+Específico: testcontainers-go (Postgres, Redis) com build tag integration; go-test-coverage com 85% nos pacotes domain.")
+  QA=$(mk falaai_app task "fase-0,infra,mobile" 0 "Pipeline de qualidade verde: make tools, make check e hooks" "$QD
+Específico: analysis_options.yaml estrito; test_integration/ sem aparelho; make test-device documentado.")
+  QI=$(mk falaai_infra task "fase-0,infra" 0 "Pipeline de qualidade verde: make tools, make check e hooks" "$QD
+Específico: testes de stack Pulumi com mocks; docker compose config validado.")
+
   # ---- falaai-proto
   local P1
   P1=$(mk falaai_proto task "fase-0,backend,cripto" 1 "Definir Envelope, frames do WebSocket, ACK e PreKeyBundle em protobuf" "proto3 em proto/falaai/v1 com buf (lint + breaking). Gerar Go e Rust (prost).
@@ -172,21 +216,22 @@ Ver $BP/blueprint/03-backend-e-infra.md")
 
   # ---- falaai-core
   local C1 C2 C3 C4 C5
-  C1=$(mk falaai_core task "fase-0,cripto" 0 "Esqueleto do crate com libsignal pinada por commit" "rust-toolchain.toml igual ao da libsignal; dependência git pinada (ADR-0001); CI com fmt, clippy -D warnings, cargo deny, cargo test. Isolar a libsignal atrás de traits internas.")
-  C2=$(mk falaai_core task "fase-0,cripto,mobile" 0 "Compilar o core para Android (3 ABIs) e iOS (xcframework) em CI" "cargo-ndk para arm64-v8a, armeabi-v7a, x86_64; xcframework com aarch64-apple-ios e aarch64-apple-ios-sim. Artefatos publicados no CI. Medir tamanho por ABI (meta: core < 10 MB).")
+  C1=$(mk falaai_core task "fase-0,cripto" 0 "Esqueleto do crate com libsignal pinada por commit" "rust-toolchain.toml igual ao da libsignal; dependência git pinada (ADR-0001). Isolar a libsignal atrás de traits internas.")
+  C2=$(mk falaai_core task "fase-0,cripto,mobile" 0 "Compilar o core para Android (3 ABIs) e iOS (xcframework)" "make build-mobile: cargo-ndk para arm64-v8a, armeabi-v7a, x86_64; xcframework com aarch64-apple-ios e aarch64-apple-ios-sim. Artefatos em dist/ (não versionados). Medir tamanho por ABI (meta: core < 10 MB).")
   C3=$(mk falaai_core task "fase-0,cripto" 0 "Stores da libsignal sobre SQLCipher" "Implementar IdentityKeyStore, SessionStore, PreKeyStore, SignedPreKeyStore, KyberPreKeyStore, SenderKeyStore sobre rusqlite com bundled-sqlcipher. Chave do banco recebida da plataforma (Keychain/Keystore). WAL + busy timeout, pensando no NSE do iOS.")
   C4=$(mk falaai_core task "fase-0,cripto,mobile" 0 "API flutter_rust_bridge: chaves, sessão, cifrar, decifrar e stream de eventos" "Funções async: generate_account_keys, process_prekey_bundle, encrypt, decrypt; Stream<ChatEvent> via StreamSink. Nenhum material de chave cruza o FFI. Erros tipados.")
   C5=$(mk falaai_core task "fase-0,cripto,backend" 1 "Teste PQXDH entre dois cores e vetores de envelope para o servidor" "Teste de integração: dois cores em processo trocam mensagens (PQXDH + Triple Ratchet), incluindo fora de ordem e duplicadas. Exportar vetores de envelope (protobuf) para testes de contrato no falaai-server. Depende de falaai-proto ($P1).")
-  dep falaai_core "$C2" "$C1"; dep falaai_core "$C3" "$C1"; dep falaai_core "$C4" "$C3"; dep falaai_core "$C5" "$C3"
+  dep falaai_proto "$P1" "$QP"
+  dep falaai_core "$C1" "$QC"; dep falaai_core "$C2" "$C1"; dep falaai_core "$C3" "$C1"; dep falaai_core "$C4" "$C3"; dep falaai_core "$C5" "$C3"
 
   # ---- falaai-server
   local S1 S2 S3 S4 S5
-  S1=$(mk falaai_server task "fase-0,backend" 0 "Esqueleto Go modular com Postgres, migrations e CI" "Um binário com módulos (accounts, keys, gateway, delivery); gin; sqlc + pgx/v5; goose; Dockerfile distroless; docker-compose local; CI com go test, golangci-lint, govulncheck. Logger com redação de campos sensíveis desde o início.")
+  S1=$(mk falaai_server task "fase-0,backend" 0 "Esqueleto Go modular com Postgres e migrations" "Um binário com módulos (accounts, keys, gateway, delivery); gin; sqlc + pgx/v5; goose; Dockerfile distroless; docker-compose local. Logger com redação de campos sensíveis desde o início.")
   S2=$(mk falaai_server task "fase-0,backend,seguranca" 1 "accounts mínimo: registro com OTP de desenvolvimento e token de dispositivo" "POST de registro com OTP fixo em dev (SMS real na Fase 1); ACI aleatório; phone_hmac + phone_enc; token de dispositivo (hash no banco). Sem log de telefone.")
   S3=$(mk falaai_server task "fase-0,backend,cripto" 1 "keys: upload e fetch de bundle com consumo de one-time prekey" "PUT do bundle por dispositivo; GET entrega um bundle e apaga a one-time prekey; aviso quando o pool < 20; rate limit por par (solicitante, alvo). Validação de assinatura em Go, sem libsignal (AGPL).")
   S4=$(mk falaai_server task "fase-0,backend" 1 "gateway + delivery mínimo: WebSocket, fila e DELETE no ACK" "WebSocket autenticado por token; message_queue particionada por hash; envelope sem remetente; entrega online via Redis pub/sub por pod; pendentes ao conectar; DELETE no ACK; TTL 30 dias (ADR-0008).")
   S5=$(mk falaai_server task "fase-0,backend,cripto" 2 "Testes de contrato com vetores do falaai-core" "Consumir vetores de envelope exportados pelo falaai-core e garantir que o servidor roteia sem alterar bytes.")
-  dep falaai_server "$S2" "$S1"; dep falaai_server "$S3" "$S1"; dep falaai_server "$S4" "$S2"; dep falaai_server "$S5" "$S4"
+  dep falaai_server "$S1" "$QS"; dep falaai_server "$S2" "$S1"; dep falaai_server "$S3" "$S1"; dep falaai_server "$S4" "$S2"; dep falaai_server "$S5" "$S4"
 
   # ---- falaai-app
   local A1 A2 A3 A4
@@ -194,14 +239,15 @@ Ver $BP/blueprint/03-backend-e-infra.md")
   A2=$(mk falaai_app task "fase-0,mobile" 1 "Demo: registrar e trocar mensagem 1:1 entre iPhone e Android" "Telas mínimas: registro (OTP de dev), adicionar contato por ACI/QR, conversa. Mensagem cifrada ponta a ponta via servidor de desenvolvimento.")
   A3=$(mk falaai_app task "fase-0,mobile,cripto" 0 "iOS: Notification Service Extension decifrando via App Group" "NSE linka o falaai-core (xcframework estático), abre o SQLCipher via App Group, busca o envelope e decifra dentro de ~24 MB/30s. Lock para nunca avançar o ratchet em dois processos. Fallback 'Nova mensagem'.")
   A4=$(mk falaai_app task "fase-0,mobile" 1 "Android: FCM data message decifrando no serviço" "FirebaseMessagingService chama o core, busca e decifra, mostra notificação local. Medir comportamento em Doze.")
-  dep falaai_app "$A2" "$A1"; dep falaai_app "$A3" "$A1"; dep falaai_app "$A4" "$A1"
+  dep falaai_app "$A1" "$QA"; dep falaai_app "$A2" "$A1"; dep falaai_app "$A3" "$A1"; dep falaai_app "$A4" "$A1"
 
   # ---- falaai-infra
   local I1 I2
   I1=$(mk falaai_infra task "fase-0,infra" 1 "Ambiente de desenvolvimento: docker-compose e stack Pulumi dev em sa-east-1" "docker-compose com Postgres, Redis e RedPanda para dev local. Stack Pulumi (Go) 'dev' mínima em sa-east-1 para o servidor da demo (VPC, cluster pequeno, RDS, Redis). Logs com 7 dias de retenção.")
   I2=$(mk falaai_infra task "fase-0,infra,mobile" 1 "Contas Apple Developer e Firebase; credenciais APNs e FCM" "Tarefa humana: contas de desenvolvedor, App Group, push certificates/keys, projeto Firebase. Segredos só no gerenciador de segredos.")
 
-  echo "$E0 $J1 $P1 $C1 $C2 $C3 $C4 $C5 $S1 $S2 $S3 $S4 $S5 $A1 $A2 $A3 $A4 $I1 $I2" > "$WORK/fase0-ids.txt"
+  dep falaai_infra "$I1" "$QI"
+  echo "$E0 $J1 $QP $QC $QS $QA $QI $P1 $C1 $C2 $C3 $C4 $C5 $S1 $S2 $S3 $S4 $S5 $A1 $A2 $A3 $A4 $I1 $I2" > "$WORK/fase0-ids.txt"
   info "Fase 0: $(wc -w < "$WORK/fase0-ids.txt" | tr -d ' ') beads (IDs em $WORK/fase0-ids.txt)"
 }
 
@@ -224,7 +270,7 @@ step_convoy() {
 }
 
 main() {
-  local steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(repos labels rigs github seed sync convoy)
+  local steps=("$@"); [[ ${#steps[@]} -eq 0 ]] && steps=(repos labels rigs settings github seed sync convoy)
   preflight
   for s in "${steps[@]}"; do "step_$s"; done
   log "Pronto. Próximo passo (manual): gt rig start <rig> e gt sling <bead> <rig>"

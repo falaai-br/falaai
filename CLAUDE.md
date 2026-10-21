@@ -5,6 +5,7 @@ Repositório de **documentação** do FalaAí: blueprint, ADRs, jurídico e scri
 **Este NÃO é um repositório Nova.** Não aplicar `ai-core-basic-decisions` nem NERDs da Nova.
 
 ## Regras
+
 - Escrever em português do Brasil, frases curtas, sem marketing.
 - Fatos externos (leis, versões de bibliotecas, preços) marcados com **[V]** (verificado, com fonte) ou **[S]** (suposição/recomendação).
 - Mudança de decisão de arquitetura = nova ADR em `docs/adr/` (ou ADR existente marcada como substituída). Nunca reescrever uma ADR aceita.

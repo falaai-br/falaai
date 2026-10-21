@@ -25,6 +25,7 @@ Mensagens, grupos, fotos, arquivos e chamadas de voz e vídeo com criptografia p
 | [Cliente](docs/blueprint/04-cliente.md) | Flutter + núcleo Rust, push, chamadas, segurança no aparelho |
 | [Roadmap](docs/blueprint/05-roadmap.md) | Fases 0 a 4, critérios de saída, riscos |
 | [Custos](docs/blueprint/06-custos.md) | Infraestrutura para 100 mil usuários |
+| [Qualidade e pipeline](docs/blueprint/07-qualidade-e-pipeline.md) | Lint, testes e segurança nos git hooks e no Refinery |
 | [LGPD e Marco Civil](docs/legal/lgpd-e-marco-civil.md) | Bases legais, art. 15, histórico de bloqueios |
 | [Retenção e resposta a ordens](docs/legal/retencao-e-resposta-a-ordens.md) | O que existe no servidor e o que pode ser entregue |
 | [Licenciamento](docs/legal/licenciamento-agpl.md) | libsignal, AGPL e App Store |

@@ -143,7 +143,7 @@ O padrão de imutabilidade (outbox, CDC, tópicos longos) **cria exatamente o gr
 
 - **Proibido em log, métrica e trace:** telefone, par remetente/destinatário, IP completo, tamanho exato de envelope, `object_id` de mídia, ACI em claro.
 - Identificador em log: `device_hash = HMAC(salt_diário, aci:device)`. Correlaciona dentro do dia, não entre dias.
-- Lint de logs no CI + scanner de dados sensíveis no provedor de observabilidade como rede de segurança.
+- Lint de logs no `make lint` (regra `forbidigo` do golangci-lint) + scanner de dados sensíveis no provedor de observabilidade como rede de segurança.
 - Traces com 1% de amostragem e sem atributos de usuário.
 - Logs: 7 dias, sem arquivamento. Métricas agregadas: 15 meses.
 - Acesso à produção via SSO + break-glass, gravado em `admin_audit_log`.
