@@ -26,9 +26,10 @@ Todo repositório tem um `Makefile` com a mesma interface. Os comandos vivem só
 | `git commit` | hook `commit-msg` | Conventional Commits | Sim |
 | `git push` | hook `pre-push` | `make check` | Sim |
 | Antes de `gt done` | polecat (etapa *pre-verify*, após rebase) | `make lint`, `make check`, `make build` | Sim |
-| Antes do merge | Refinery, gate `check` (pre-merge) | `make check` | Sim |
-| Depois do squash, antes do push | Refinery, gate `build-merged` (post-squash) | `make build` | Sim; reseta o merge se falhar |
+| Antes do merge | Refinery (`merge_queue.test_command`, após rebase na `main`) | `make check` | Sim |
 | Revisão | Refinery com `judgment_enabled` | Revisão de qualidade por agente | Sim |
+
+Gates nomeados com fase pós-squash (`merge_queue.gates`) não existem no Gas Town v1.1.0 instalado. Quando existirem, acrescentar um gate `build-merged` com `make build` na fase `post-squash`.
 
 Hooks são bloqueantes. `FALAAI_SKIP_HOOKS=1` existe para emergência humana; agentes não podem usar. O Refinery repete o gate, então pular o hook não pula a verificação.
 

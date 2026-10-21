@@ -38,7 +38,8 @@ preflight() {
   command -v bd >/dev/null || die "bd (beads) não encontrado"
   local t; t="$(gh api "users/$ORG" --jq .type 2>/dev/null || true)"
   [[ "$t" == "Organization" ]] || die "A organização '$ORG' não existe no GitHub. Crie em https://github.com/organizations/plan (plano Free) e rode de novo."
-  if (cd "$GT_HOME" && gt dolt status 2>&1 | grep -q "is not running"); then
+  local dolt_status; dolt_status="$(cd "$GT_HOME" && gt dolt status 2>&1 || true)"
+  if [[ "$dolt_status" == *"is not running"* ]]; then
     info "Dolt parado; iniciando com 'gt dolt start'"
     (cd "$GT_HOME" && gt dolt start) || die "não consegui iniciar o Dolt; veja 'gt dolt status'"
   fi
@@ -115,31 +116,53 @@ step_rigs() {
     else
       local extra=()
       [[ "$name" == "falaai" ]] && extra=(--local-repo "$DOCS_DIR")
-      (cd "$GT_HOME" && gt rig add "$rig" "git@github.com:$ORG/$name.git" --prefix "$prefix" "${extra[@]}")
+      (cd "$GT_HOME" && gt rig add "$rig" "git@github.com:$ORG/$name.git" --prefix "$prefix" "${extra[@]}") || true
       info "$rig: registrada (prefixo $prefix)"
     fi
+    fix_rig_db "$rig" "$prefix"
   done
+}
+
+# Contorno de gastownhall/beads#4566 (modo servidor): o 'gt rig add' cria o banco da rig
+# sem commitar o schema, a migração recusa tabelas sujas e o issue_prefix nunca é gravado.
+fix_rig_db() {
+  local rig="$1" prefix="$2" cur
+  cur="$(bdr "$rig" config get issue_prefix 2>&1 | tail -1 || true)"
+  [[ "$cur" == "$prefix" ]] && { info "$rig: banco de beads ok"; return; }
+  info "$rig: aplicando contorno beads#4566 (commit do schema + reinit do prefixo)"
+  dolt --host 127.0.0.1 --port 3307 --user root --password "" --no-tls --use-db "$rig" \
+    sql -q "CALL DOLT_COMMIT('-Am', 'chore: commit do schema inicial da rig (beads#4566)')" >/dev/null 2>&1 || true
+  bdr "$rig" config get issue_prefix >/dev/null 2>&1 || true   # dispara a migração
+  bdr "$rig" init --reinit-local --prefix "$prefix" --database "$rig" --server --external \
+    --skip-agents --skip-hooks --non-interactive -q >/dev/null
+  cur="$(bdr "$rig" config get issue_prefix 2>&1 | tail -1 || true)"
+  [[ "$cur" == "$prefix" ]] || die "$rig: issue_prefix continua '$cur'; veja gastownhall/beads#4566"
+  # O reinit perde os tipos do Gas Town e a bead de identidade da rig.
+  bdr "$rig" config set types.custom "agent,role,rig,convoy,slot,queue,event,message,molecule,gate,merge-request" >/dev/null
+  local repo; repo="$(cd "$GT_HOME" && python3 -c "import json,sys;print(json.load(open(sys.argv[1]+'/config.json'))['git_url'])" "$rig")"
+  bdr "$rig" show "$prefix-rig-$rig" >/dev/null 2>&1 || bdr "$rig" create --silent --id="$prefix-rig-$rig" \
+    --title="$rig" --type=rig --labels=gt:rig --force \
+    -d "Rig identity bead for $rig.
+repo: $repo
+prefix: $prefix
+state: active" >/dev/null
+  info "$rig: banco de beads ok"
 }
 
 step_settings() {
   log "Gates de qualidade das rigs (merge_queue)"
-  local gates='{"check":{"cmd":"make check","timeout":"40m"},"build-merged":{"cmd":"make build","timeout":"20m","phase":"post-squash"}}'
+  # gt v1.1.0 não aceita 'merge_queue.gates' em 'gt rig settings'; o Refinery usa test_command.
+  # Quando o gt suportar gates nomeados, acrescentar: check (pre-merge) e build-merged (post-squash).
+  local kv
   for r in "${REPOS[@]}"; do
     local rig; rig=$(field "$r" 2)
-    (
-      cd "$GT_HOME"
-      gt rig settings set "$rig" merge_queue.enabled true
-      gt rig settings set "$rig" merge_queue.run_tests true
-      gt rig settings set "$rig" merge_queue.setup_command "make tools"
-      gt rig settings set "$rig" merge_queue.lint_command "make lint"
-      gt rig settings set "$rig" merge_queue.test_command "make check"
-      gt rig settings set "$rig" merge_queue.build_command "make build"
-      gt rig settings set "$rig" merge_queue.gates "$gates"
-      gt rig settings set "$rig" merge_queue.judgment_enabled true
-      gt rig settings set "$rig" merge_queue.merge_strategy pr
-      gt rig settings set "$rig" merge_queue.require_review false
-    ) >/dev/null
-    info "$rig: gates check + build-merged, revisão por agente"
+    for kv in "enabled=true" "run_tests=true" "setup_command=make tools" "lint_command=make lint" \
+              "test_command=make check" "build_command=make build" \
+              "judgment_enabled=true" "merge_strategy=pr" "require_review=false" \
+              "on_conflict=assign_back" "retry_flaky_tests=1" "poll_interval=30s" "max_concurrent=1"; do
+      (cd "$GT_HOME" && gt rig settings set "$rig" "merge_queue.${kv%%=*}" "${kv#*=}") >/dev/null
+    done
+    info "$rig: make check antes do merge, revisão por agente, PR no GitHub"
   done
 }
 
@@ -255,7 +278,14 @@ step_sync() {
   log "Sincronizando beads -> GitHub Issues"
   for r in "${REPOS[@]}"; do
     local rig; rig=$(field "$r" 2)
-    bdr "$rig" github sync --push-only && info "$rig: ok"
+    # Só beads de trabalho viram issues; tipos internos do Gas Town (rig, agent, convoy...) ficam fora.
+    local ids
+    ids="$(bdr "$rig" list --all -n 0 --json 2>/dev/null | python3 -c "import json,sys
+d=json.load(sys.stdin)
+if isinstance(d,dict): d=d.get('issues') or []
+print(','.join(i['id'] for i in d if i.get('issue_type') in ('task','epic','bug','feature','chore','decision')))")"
+    if [[ -z "$ids" ]]; then info "$rig: nada para sincronizar"; continue; fi
+    bdr "$rig" github sync --push-only --issues "$ids" >/dev/null && info "$rig: $(echo "$ids" | tr ',' '\n' | wc -l | tr -d ' ') beads espelhadas"
   done
 }
 

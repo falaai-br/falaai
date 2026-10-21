@@ -32,7 +32,7 @@ Etapas, nesta ordem: `repos`, `labels`, `rigs`, `settings`, `github`, `seed`, `s
 | `falaai-infra` | `falaai_infra` | `fli` | privado |
 
 - Cada repositório nasce com `Makefile`, `.githooks/`, `mk/hooks.mk`, `.gitleaks.toml` e `.editorconfig`. O script roda `make check` em cada esqueleto antes do primeiro push.
-- Cada rig recebe gates de merge (`make check` antes do merge, `make build` depois do squash) e revisão por agente.
+- Cada rig recebe `merge_queue` chamando o Makefile (`make check` antes do merge), revisão por agente e merge via PR. O script também aplica o contorno do bug beads#4566 em rigs novas.
 - Rig `falaai`: 5 epics (Fases 0 a 4, encadeados) e 3 tarefas jurídicas.
 - Demais rigs: uma bead raiz "Pipeline de qualidade verde" e as tarefas da Fase 0, que dependem dela.
 - Convoy "FalaAí Fase 0" rastreando o epic e todas as tarefas da Fase 0.

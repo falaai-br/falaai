@@ -11,7 +11,7 @@ O projeto é construído por agentes orquestrados pelo Gas Town, e o merge para 
 
 1. Cada repositório tem um `Makefile` com interface única (`tools`, `fmt`, `lint`, `test`, `test-integration`, `security`, `build`, `check-fast`, `check`).
 2. Os git hooks versionados em `.githooks/` são **bloqueantes**: `pre-commit` roda `make check-fast`, `commit-msg` exige Conventional Commits e `pre-push` roda `make check`. `make tools` ativa os hooks no clone.
-3. As rigs do Gas Town configuram `merge_queue` com gates que chamam o mesmo Makefile: `check` antes do merge e `build-merged` depois do squash, com revisão por agente habilitada.
+3. As rigs do Gas Town configuram `merge_queue` para chamar o mesmo Makefile (`setup_command=make tools`, `lint_command=make lint`, `test_command=make check`, `build_command=make build`), com revisão por agente (`judgment_enabled`) e merge via PR no GitHub. Gates nomeados pós-squash ficam para quando o Gas Town suportá-los.
 4. Nenhum arquivo em `.github/workflows/`.
 
 ## Consequências
