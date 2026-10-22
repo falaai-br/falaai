@@ -132,6 +132,8 @@ O padrão de imutabilidade (outbox, CDC, tópicos longos) **cria exatamente o gr
 
 ## Hospedagem
 
+**Desenvolvimento sem conta AWS:** toda a infraestrutura roda localmente com docker-compose e **LocalStack** (S3, SQS, KMS, Secrets Manager). A stack Pulumi `local` aponta para o LocalStack; a de produção muda só a configuração.
+
 **AWS sa-east-1 no MVP** ([ADR-0006](../adr/ADR-0006-aws-sa-east-1-no-mvp.md)):
 
 - Dados ficam no Brasil; o time já opera EKS, RDS, Pulumi e ArgoCD.

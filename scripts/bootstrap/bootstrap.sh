@@ -266,7 +266,9 @@ Ver $BP/blueprint/03-backend-e-infra.md")
 
   # ---- falaai-infra
   local I1 I2
-  I1=$(mk falaai_infra task "fase-0,infra" 1 "Ambiente de desenvolvimento: docker-compose e stack Pulumi dev em sa-east-1" "docker-compose com Postgres, Redis e RedPanda para dev local. Stack Pulumi (Go) 'dev' mínima em sa-east-1 para o servidor da demo (VPC, cluster pequeno, RDS, Redis). Logs com 7 dias de retenção.")
+  I1=$(mk falaai_infra task "fase-0,infra" 1 "Ambiente de desenvolvimento: docker-compose e AWS local (LocalStack) com Pulumi" "docker-compose com Postgres, Redis, RedPanda e LocalStack (S3, SQS, KMS, Secrets Manager) para dev local.
+Stack Pulumi (Go) 'local' apontando para o LocalStack (endpoints customizados, credenciais fake), aplicada com 'pulumi up' contra o LocalStack. Nenhuma conta AWS real nesta fase.
+Mesma stack deve servir de base para sa-east-1 depois, trocando só configuração. Logs com 7 dias de retenção.")
   I2=$(mk falaai_infra task "fase-0,infra,mobile" 1 "Contas Apple Developer e Firebase; credenciais APNs e FCM" "Tarefa humana: contas de desenvolvedor, App Group, push certificates/keys, projeto Firebase. Segredos só no gerenciador de segredos.")
 
   dep falaai_infra "$I1" "$QI"
