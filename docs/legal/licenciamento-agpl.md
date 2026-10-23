@@ -19,7 +19,7 @@
 | `falaai-infra` | Não | Proprietária | Privado |
 | `falaai` (docs) | Não | CC-BY-SA 4.0 | Público |
 
-- **[S] Servidor:** pode ser fechado **enquanto não linkar** libsignal, zkgroup ou outro código AGPL. A validação de assinaturas no servidor usa implementação Go independente. Se no futuro adotarmos zkgroup ou SVR no servidor, essas partes ficam sob AGPL (cláusula de rede) e precisam ser publicadas.
+- **[S] Servidor:** pode ser fechado **enquanto não linkar** libsignal, zkgroup ou outro código AGPL. O servidor não verifica assinaturas criptográficas; quem verifica é a libsignal no cliente. Se no futuro adotarmos zkgroup ou SVR no servidor, essas partes ficam sob AGPL (cláusula de rede) e precisam ser publicadas.
 - **[S] Recomendação:** publicar o servidor também, mesmo sem obrigação. Reforça a tese "100% auditável". A decisão atual é mantê-lo privado; revisável.
 
 ## Risco App Store

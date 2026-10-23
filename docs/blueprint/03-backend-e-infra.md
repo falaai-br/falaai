@@ -6,7 +6,7 @@ O servidor de um mensageiro E2EE é pequeno por natureza: um **diretório de cha
 
 - **Signal-Server** (Java, AGPL-3.0) descartado: obrigaria a publicar o servidor, é acoplado a FoundationDB/DynamoDB e enclaves SGX, e o time é Go.
 - **Matrix** descartado: usa Olm/Megolm, não Signal Protocol, e expõe muitos metadados ao homeserver (estado de sala, histórico para federação).
-- O servidor **não linka libsignal**. Validação de assinaturas XEdDSA/Ed25519 usa implementação Go independente. Isso mantém o servidor fora da AGPL (ver [licenciamento](../legal/licenciamento-agpl.md)).
+- O servidor **não linka libsignal**. O servidor **não verifica assinaturas** de prekeys: guarda o bundle como dado opaco e valida só a estrutura (tamanhos, ids, limites). A verificação é da libsignal no cliente, ao processar o bundle. Nada de primitiva criptográfica escrita à mão no servidor. Isso mantém o servidor fora da AGPL (ver [licenciamento](../legal/licenciamento-agpl.md)).
 
 ## Componentes
 
