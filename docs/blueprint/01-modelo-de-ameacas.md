@@ -38,4 +38,5 @@ Este documento é público. Ele diz com franqueza contra quem o FalaAí protege 
 1. **Membros de grupo visíveis ao servidor.** Resolvido com zkgroup em fase posterior.
 2. **Sem key transparency.** Um servidor malicioso poderia tentar trocar chaves públicas; o alerta de mudança de safety number é a defesa no MVP.
 3. **Chamadas em grupo expõem ao SFU quem está na chamada e quando.** O conteúdo de áudio e vídeo segue cifrado por frame.
-4. **Hospedagem em provedor americano (AWS sa-east-1)** sujeito ao CLOUD Act. Só metadados estão em jogo; o conteúdo é ciphertext.
+4. **Sealed sender ([ADR-0010](../adr/ADR-0010-sealed-sender-canal-nao-autenticado-desde-a-fase-0.md)):** o primeiro envio a um contato sem profile key usa o canal autenticado e expõe o par ao servidor; IP e horário podem correlacionar os dois sockets.
+5. **Hospedagem em provedor americano (AWS sa-east-1)** sujeito ao CLOUD Act. Só metadados estão em jogo; o conteúdo é ciphertext.

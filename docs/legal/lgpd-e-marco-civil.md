@@ -28,6 +28,8 @@
 
 ### Implicação para o FalaAí
 
+**Ponto a confirmar no parecer:** o envio sealed sender usa um socket sem conta ([ADR-0010](../adr/ADR-0010-sealed-sender-canal-nao-autenticado-desde-a-fase-0.md)) e não gera registro de acesso por conta para mensagens enviadas. As conexões autenticadas, usadas para receber, continuam registradas.
+
 Guardar IP + data/hora de acesso é **compatível** com E2EE. Não guardamos conteúdo, destinatários nem o grafo de contatos. A tabela `access_log` (ver [backend](../blueprint/03-backend-e-infra.md)) guarda só `(data/hora, IP, porta, ACI)`, cifrada em repouso, com acesso auditado e purga automática após 6 meses.
 
 ## Histórico: bloqueios do WhatsApp
