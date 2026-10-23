@@ -40,6 +40,7 @@ Mensagens, grupos, fotos, arquivos e chamadas de voz e vídeo com criptografia p
 | `falaai-app` | App Flutter (Android e iOS) | AGPL-3.0 |
 | `falaai-proto` | Contratos protobuf cliente/servidor | Apache-2.0 |
 | `falaai-server` | Servidor Go | Privado |
+| `falaai-signer` | Assinador de certificados do sealed sender (Rust, libsignal) | AGPL-3.0 |
 | `falaai-infra` | Infraestrutura (Pulumi) | Privado |
 
 ## Como o trabalho é organizado

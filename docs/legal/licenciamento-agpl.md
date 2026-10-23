@@ -16,6 +16,7 @@
 | `falaai-app` | Sim (via core) | AGPL-3.0 | Público |
 | `falaai-proto` | Não | Apache-2.0 | Público |
 | `falaai-server` | **Não** | Proprietária | Privado |
+| `falaai-signer` | Sim | AGPL-3.0 | Público |
 | `falaai-infra` | Não | Proprietária | Privado |
 | `falaai` (docs) | Não | CC-BY-SA 4.0 | Público |
 

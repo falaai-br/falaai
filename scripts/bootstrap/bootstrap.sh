@@ -23,6 +23,7 @@ REPOS=(
   "falaai-proto|falaai_proto|flp|public|apache-2.0|Contratos protobuf entre app e servidor do FalaAí"
   "falaai-server|falaai_server|fls|private|none|Servidor Go do FalaAí"
   "falaai-infra|falaai_infra|fli|private|none|Infraestrutura do FalaAí (Pulumi, AWS sa-east-1)"
+  "falaai-signer|falaai_signer|flg|public|agpl-3.0|Assinador de certificados de remetente (sealed sender) do FalaAí, sobre a libsignal"
 )
 
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
@@ -69,7 +70,7 @@ step_repos() {
         cp -R "$TPL/_common/.githooks" "$TPL/_common/mk" "$src/"
         cp "$TPL/_common/.gitleaks.toml" "$TPL/_common/.editorconfig" "$src/"
         chmod +x "$src/.githooks/"*
-        if [[ "$name" == "falaai-core" ]]; then (cd "$src" && cargo generate-lockfile -q); fi
+        if [[ "$name" == "falaai-core" || "$name" == "falaai-signer" ]]; then (cd "$src" && cargo generate-lockfile -q); fi
         [[ "$lic" != "none" ]] && cp "$LIC/$lic.txt" "$src/LICENSE"
         grep -rl '__ORG__' "$src" | xargs -I{} sed -i '' "s/__ORG__/$ORG/g" {} 2>/dev/null || true
         git -C "$src" init -q -b main
